@@ -47,15 +47,25 @@ body {
   flex-direction:column;
 }
 
+#diver {
+  position:fixed;
+  inset:0;
+  margin:auto;
+  max-width:60%;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.2s;
+}
+
 .shake {
-  animation: shake .2s;
+  animation: shake .15s infinite;
 }
 
 @keyframes shake {
   0%{transform:translate(0)}
-  25%{transform:translate(6px)}
-  50%{transform:translate(-6px)}
-  75%{transform:translate(6px)}
+  25%{transform:translate(4px)}
+  50%{transform:translate(-4px)}
+  75%{transform:translate(4px)}
   100%{transform:translate(0)}
 }
 </style>
@@ -69,12 +79,13 @@ body {
 <div id="room"></div>
 <div id="flash"></div>
 
+<img id="diver" src="DIVER.PNG">
+
 <div id="overlay">
   <h2 id="panicText">تنظيف النظام جارٍ</h2>
   <p>اضغط لتثبيت الواقع</p>
 </div>
 
-<!-- ملف الصوت المحلي الخاص بك -->
 <audio id="guiltAudio" src="guilt.mp3"></audio>
 
 <script>
@@ -83,11 +94,14 @@ const flash = document.getElementById("flash");
 const overlay = document.getElementById("overlay");
 const panicText = document.getElementById("panicText");
 const guiltAudio = document.getElementById("guiltAudio");
+const diver = document.getElementById("diver");
 
 const ctx = new (window.AudioContext||window.webkitAudioContext)();
 let purge = false;
+let berserk = false;
 let clicks = 0;
 
+// ---------- NOISE ----------
 function jumpscareSound(freq){
   const o = ctx.createOscillator();
   const g = ctx.createGain();
@@ -99,6 +113,7 @@ function jumpscareSound(freq){
   setTimeout(()=>o.stop(),180);
 }
 
+// ---------- BUTTONS ----------
 const total = 11;
 const trapIndex = Math.floor(Math.random()*total);
 
@@ -140,17 +155,47 @@ function randomize(){
   });
 }
 
+// ---------- GUILT ----------
 function startGuilt(){
   purge = true;
   overlay.style.display = "flex";
   guiltAudio.play();
-  setInterval(()=>{
-    panicText.textContent = "الواقع غير مستقر " + Math.floor(Math.random()*999);
-  },120);
+
+  // fade diver while voice plays
+  const fade = setInterval(()=>{
+    if(diver.style.opacity < 1){
+      diver.style.opacity = parseFloat(diver.style.opacity) + 0.002;
+    }
+  }, 20);
+
+  guiltAudio.onended = () => {
+    clearInterval(fade);
+    diver.style.opacity = 1;
+    goBerserk();
+  };
 }
 
+function goBerserk(){
+  berserk = true;
+  document.body.classList.add("shake");
+
+  setInterval(()=>{
+    panicText.textContent = "الواقع غير مستقر " + Math.floor(Math.random()*9999);
+  },80);
+}
+
+// ---------- CLICK TRAP ----------
 document.body.onclick = ()=>{
   if(!purge) return;
+
+  // clicking while voice plays = trap
+  if(purge && !berserk){
+    jumpscareSound(120);
+    diver.style.opacity = Math.max(0, diver.style.opacity - 0.05);
+    return;
+  }
+
+  if(!berserk) return;
 
   clicks++;
   flash.style.opacity = .6;
@@ -158,17 +203,18 @@ document.body.onclick = ()=>{
 
   setTimeout(()=>flash.style.opacity=0,60);
 
-  if(clicks > 35){
+  if(clicks > 40){
     overlay.innerHTML = "<h2>تم استعادة الاستقرار</h2><p>العودة إلى الغواصة…</p>";
     setTimeout(()=>{
-      location.href = "yourgame.html"; // عدل الرابط إلى لعبتك
+      location.href = "https://noodliegames.github.io/DEEP-SEEK/";
     },1500);
   }
 };
 
+// ---------- FLICKER ----------
 setInterval(()=>{
   document.body.style.background = Math.random()>.5?"black":"#120000";
-},180);
+},150);
 </script>
 
 </body>
